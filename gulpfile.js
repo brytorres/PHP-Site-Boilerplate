@@ -1,4 +1,6 @@
 var gulp = require('gulp'),
+    connect = require('gulp-connect-php'),
+    browserSync = require('browser-sync'),
     plumber = require('gulp-plumber'),
     rename = require('gulp-rename');
 var autoprefixer = require('gulp-autoprefixer');
@@ -8,13 +10,16 @@ var imagemin = require('gulp-imagemin'),
     cache = require('gulp-cache');
 var minifycss = require('gulp-minify-css');
 var sass = require('gulp-sass');
-var browserSync = require('browser-sync');
 
-gulp.task('browser-sync', function() {
-  browserSync({
-    server: {
-       baseDir: "./"
-    }
+gulp.task('connect-sync', function() {
+  connect.server({}, function (){
+    browserSync({
+      proxy: '127.0.0.1:8000'
+    });
+  });
+
+  gulp.watch('**/*.php').on('change', function () {
+    browserSync.reload();
   });
 });
 
@@ -29,18 +34,16 @@ gulp.task('images', function(){
 });
 
 gulp.task('styles', function(){
-  gulp.src(['assets/scss/**/*.scss'])
+  return gulp.src(['assets/scss/**/*.scss'])
     .pipe(plumber({
       errorHandler: function (error) {
         console.log(error.message);
         this.emit('end');
     }}))
-    .pipe(sass())
+    .pipe(sass()).on('error', sass.logError)
     .pipe(autoprefixer('last 2 versions'))
-    .pipe(gulp.dest('build/css/'))
-    .pipe(rename({suffix: '.min'}))
     .pipe(minifycss())
-    .pipe(gulp.dest('build/css/'))
+    .pipe(gulp.dest('./build/css/'))
     .pipe(browserSync.reload({stream:true}))
 });
 
@@ -59,7 +62,7 @@ gulp.task('scripts', function(){
     .pipe(browserSync.reload({stream:true}))
 });
 
-gulp.task('default', ['browser-sync'], function(){
+gulp.task('default', ['connect-sync'], function(){
   gulp.watch("assets/scss/**/*.scss", ['styles']);
   gulp.watch("assets/js/**/*.js", ['scripts']);
   gulp.watch("*.html", ['bs-reload']);
